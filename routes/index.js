@@ -4,7 +4,7 @@ var BoardLogic = require('../modules/logic/BoardLogic')
 
 /* GET home page. */
 router.post('/', function(req, res, next) {
-  console.log("From Monday");
+  console.log("============ From Monday ==============");
   console.log(req.body)
 
   BoardLogic.handleMessage(req.body);

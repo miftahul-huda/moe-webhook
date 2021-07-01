@@ -6,6 +6,15 @@ var StudentLogic = require('../modules/logic/StudentLogic')
 var BoardLogic = require('../modules/logic/BoardLogic');
 const ReportLogic = require('../modules/logic/ReportLogic');
 
+
+
+/* GET homework statuses */
+router.get('/homeworkstatuses', async function(req, res, next) {
+  console.log("======= REST API =====");
+  let statuses = await ReportLogic.getHomeworkStatuses();
+  res.send({ success: true, payload: statuses });
+});
+
 /* GET groups by board id */
 router.get('/groups/by-board/:boardID', async function(req, res, next) {
     console.log("======= REST API =====");
@@ -25,13 +34,37 @@ router.get('/homeworks/by-board-and-group/:boardID/:groupID', async function(req
     res.send({ success: true, payload: homeworks });
 });
 
-/* GET homeworks by board id and group id */
+/* GET homeworks by board id and group id and homeworkID and status*/
+router.get('/homeworks/by-board-group-homework-status/:boardID/:groupID/:homeworkId/:status', async function(req, res, next) {
+  console.log("======= REST API =====");
+  let boardID = req.params.boardID;
+  let groupID = req.params.groupID;
+  let homeworkId = req.params.homeworkId;
+  let status = req.params.status;
+  
+  let students = await ReportLogic.getAllHomeworksByBoardGroupHomeworkStatus(boardID, groupID, homeworkId, status);
+  res.send({ success: true, payload: students });
+});
+
+/* GET students by board id and group id */
 router.get('/students/by-board-and-group/:boardID/:groupID', async function(req, res, next) {
   console.log("======= REST API =====");
   let boardID = req.params.boardID;
   let groupID = req.params.groupID;
   
   let students = await ReportLogic.getAllStudents(boardID, groupID);
+  res.send({ success: true, payload: students });
+});
+
+/* GET students by board id and group id and homeworkID and status*/
+router.get('/students/by-board-group-homework-status/:boardID/:groupID/:homeworkId/:status', async function(req, res, next) {
+  console.log("======= REST API =====");
+  let boardID = req.params.boardID;
+  let groupID = req.params.groupID;
+  let homeworkId = req.params.homeworkId;
+  let status = req.params.status;
+  
+  let students = await ReportLogic.getAllStudentsByBoardGroupHomeworkStatus(boardID, groupID, homeworkId, status);
   res.send({ success: true, payload: students });
 });
 

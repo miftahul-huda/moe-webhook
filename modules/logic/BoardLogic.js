@@ -12,16 +12,13 @@ class BoardLogic
 
     static getGraphClient()
     {
-        let headers = {
-            'Content-Type': 'application/json',
-            'Authorization' : 'eyJhbGciOiJIUzI1NiJ9.eyJ0aWQiOjEwNTc3NTg2OCwidWlkIjoxMjE0NTQ1NywiaWFkIjoiMjAyMS0wNC0wOFQwNToxNjo0Mi4wMDBaIiwicGVyIjoibWU6d3JpdGUiLCJhY3RpZCI6MjQ4MTQ1NywicmduIjoidXNlMSJ9.hFUZN6fnpionJ7Pka1VqHqJNj2sDhkN9P57_UJPFKtA'
-        };
+
 
         //Create connection called 'client' that connects to Monday.com's API
         const client = new GraphQLClient('https://api.monday.com/v2', {
             headers: {
                 'Content-Type': 'application/json',
-                'Authorization': 'eyJhbGciOiJIUzI1NiJ9.eyJ0aWQiOjEwNTc3NTg2OCwidWlkIjoxMjE0NTQ1NywiaWFkIjoiMjAyMS0wNC0wOFQwNToxNjo0Mi4wMDBaIiwicGVyIjoibWU6d3JpdGUiLCJhY3RpZCI6MjQ4MTQ1NywicmduIjoidXNlMSJ9.hFUZN6fnpionJ7Pka1VqHqJNj2sDhkN9P57_UJPFKtA'
+                'Authorization': process.env.API_KEY
             },
         });
         return client;
@@ -258,6 +255,7 @@ class BoardLogic
 
     static async handleMessage(message)
     {
+        console.log("============ handleMessage() ================")
         let maps = await this.getMappings();
         var item = await this.getItem(message.event.pulseId);
         var teacherBoardGroup = await this.getBoardGroup(message.event.boardId, message.event.groupId );
@@ -318,16 +316,23 @@ class BoardLogic
 
     static createColumnValues(colValues, maps)
     {
-
+        console.log("============ createColumnValues() ================")
         let column_values = {};
         let mapCol = null;
         colValues.forEach((colValue) => {
             let colName = colValue.id;
+            console.log("---------" + colName + " = " + colValue.value + ", text: " + colValue.text);
             mapCol = this.mapByFieldname(colName, maps);
             if(colValue.value != null)
             {
                 if(mapCol == null)
-                    column_values[ "'" + colName + "'" ] = colValue.value;
+                {
+                    let colValue2 = colValue.value;
+                    let ss = JSON.parse(colValue2);
+                    if(typeof ss == 'string')
+                        colValue2 = "'" + ss + "'";
+                    column_values[ "'" + colName + "'" ] = colValue2;
+                }
                 else
                 {
                     var value = JSON.parse(colValue.value)
@@ -342,6 +347,7 @@ class BoardLogic
 
     static async createItem( studentBoardId, studentGroupId, teacherItem, teacherBoardID, teacherGroupID)
     {
+        console.log("============ createItem() ================")
         let query = "mutation { " +
         "create_item(board_id: " + studentBoardId + ", group_id: \"" + studentGroupId + "\", item_name: \"" + teacherItem.name + "\" ) " +
         "{ " +
@@ -380,6 +386,7 @@ class BoardLogic
 
     static async saveNewItem(item, boardId, teacherBoardGroup)
     {
+        console.log("============ saveNewItem() ================")
         var colStatus = this.searchColumnValue(item, "status");
         var homework = {};
         homework.homeworkTitle = item.name;
@@ -398,7 +405,7 @@ class BoardLogic
     static async saveUpdateItem(item, boardId, teacherBoardGroup)
     {
 
-
+        console.log("============ saveUpdateItem() ================")
         var colStatus = this.searchColumnValue(item, "status");
         var colDate = this.searchColumnValue(item, "date4");
 
@@ -450,6 +457,7 @@ class BoardLogic
 
     static async deleteItem(item_id)
     {
+        console.log("============ deleteItem() ================")
         let promise = new Promise((resolve, reject)=>{
             let query = "mutation { " +
             " delete_item (item_id: " + item_id + ") { " +
@@ -482,6 +490,7 @@ class BoardLogic
 
     static async getTeacherStudentByBoardGroupItem(teacherBoardID, teacherGroupID, teacherItemID, studentBoardID, studentGroupID )
     {
+        console.log("============ getTeacherStudentByBoardGroupItem() ================")
         let result = await TeacherStudentModel.findAll({ 
             where: {
                 [Op.and] : [
@@ -505,6 +514,7 @@ class BoardLogic
 
     static async updateItem( studentBoardId, studentGroupId, teacherItem, teacherBoardID, teacherGroupID)
     {
+        console.log("============ updateItem() ================")
         let maps = await this.getMappings();
         let column_values = this.createColumnValues(teacherItem.column_values, maps);
         column_values["'name'"] =  "'" + teacherItem.name + "'";

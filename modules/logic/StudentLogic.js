@@ -12,16 +12,12 @@ class StudentLogic
 
     static getGraphClient()
     {
-        let headers = {
-            'Content-Type': 'application/json',
-            'Authorization' : 'eyJhbGciOiJIUzI1NiJ9.eyJ0aWQiOjEwNTc3NTg2OCwidWlkIjoxMjE0NTQ1NywiaWFkIjoiMjAyMS0wNC0wOFQwNToxNjo0Mi4wMDBaIiwicGVyIjoibWU6d3JpdGUiLCJhY3RpZCI6MjQ4MTQ1NywicmduIjoidXNlMSJ9.hFUZN6fnpionJ7Pka1VqHqJNj2sDhkN9P57_UJPFKtA'
-        };
 
         //Create connection called 'client' that connects to Monday.com's API
         const client = new GraphQLClient('https://api.monday.com/v2', {
             headers: {
                 'Content-Type': 'application/json',
-                'Authorization': 'eyJhbGciOiJIUzI1NiJ9.eyJ0aWQiOjEwNTc3NTg2OCwidWlkIjoxMjE0NTQ1NywiaWFkIjoiMjAyMS0wNC0wOFQwNToxNjo0Mi4wMDBaIiwicGVyIjoibWU6d3JpdGUiLCJhY3RpZCI6MjQ4MTQ1NywicmduIjoidXNlMSJ9.hFUZN6fnpionJ7Pka1VqHqJNj2sDhkN9P57_UJPFKtA'
+                'Authorization': process.env.API_KEY
             },
         });
         return client;
@@ -49,6 +45,7 @@ class StudentLogic
 
     static async getItem(itemId)
     {
+        console.log("============ StudentLogic.getItem() ================")
         let promise = new Promise((resolve, reject)=>{
             let query = "{" +
             "items(ids:[" + itemId + "]) {" +
@@ -86,6 +83,7 @@ class StudentLogic
 
     static async getItemByName(name)
     {
+        console.log("============ StudentLogic.getItemByName() ================")
         let promise = new Promise((resolve, reject)=>{
             let query = "{" +
             "items(ids:[" + itemId + "]) {" +
@@ -128,6 +126,7 @@ class StudentLogic
 
     static async getStudents()
     {
+        console.log("============ StudentLogic.getStudentss() ================")
         try{
             var students =  await StudentModel.findAll();
             return students;
@@ -141,6 +140,7 @@ class StudentLogic
 
     static async getBoardGroup(boardId, groupId)
     {
+        console.log("============ StudentLogic.getBoardGroup() ================")
         let promise = new Promise((resolve, reject) => {
             let query = "{ " +
             "boards(ids: " + boardId + ") { " +
@@ -176,6 +176,7 @@ class StudentLogic
 
     static async getBoardGroupByTitle(boardID, title)
     {
+        console.log("============ StudentLogic.getBoardGroupByTitle() ================")
         let promise = new Promise((resolve, reject) => {
             let query = "{ " +
             "boards(ids: " + boardID + ") { " +
@@ -216,7 +217,7 @@ class StudentLogic
 
     static async getDbHomeworkByStudentBoardAndGroupAndItemID(studentBoardID, studentGroupID, studentItemID)
     {
-
+        console.log("============ StudentLogic.getDbHomeworkByStudentBoardAndGroupAndItemID() ================")
         let teacherStudents = await TeacherStudentModel.findAll({ where: {
  
             [Op.and] : [
@@ -256,6 +257,7 @@ class StudentLogic
 
     static async getDbStudentBoardID(boardID)
     {
+        console.log("============ StudentLogic.getDbStudentBoardID() ================")
         let students = await StudentModel.findAll({ where: {
             boardID : {
                 [Op.like] : "" + boardID
@@ -288,6 +290,7 @@ class StudentLogic
 
     static async deleteDbHomeworkAndStudent(dbHomework, dbStudent)
     {
+        console.log("============ StudentLogic.deleteDbHomeworkAndStudent() ================")
         if(dbHomework != null)
         {
             await HomeworkStudentModel.destroy({ where: { [Op.and] : [ { studentId: dbStudent.id }, { homeworkId : dbHomework.id } ] }})
@@ -296,6 +299,7 @@ class StudentLogic
 
     static async getDbHomeworkStudentByDbHomeworkAndStudent(dbHomework, dbStudent)
     {
+        console.log("============ StudentLogic.getDbHomeworkStudentByDbHomeworkAndStudent() ================")
         let homeworkStudents = await HomeworkStudentModel.findAll({ where: { [Op.and] : [ { studentId: dbStudent.id }, { homeworkId : dbHomework.id } ] }})
         if(homeworkStudents.length > 0)
             return homeworkStudents[0]
@@ -305,6 +309,7 @@ class StudentLogic
 
     static async createDbHomeworkStudent(message)
     {
+        console.log("============ StudentLogic.createDbHomeworkStudent() ================")
         var item = await this.getItem(message.event.pulseId);
         var studentBoardGroup = await this.getBoardGroup(message.event.boardId, message.event.groupId );
         var subjectName = studentBoardGroup.title;
@@ -342,6 +347,7 @@ class StudentLogic
 
     static async updateDbHomeworkStudent(message)
     {
+        console.log("============ StudentLogic.updateDbHomeworkStudent() ================")
         var item = await this.getItem(message.event.pulseId);
         var studentBoardGroup = await this.getBoardGroup(message.event.boardId, message.event.groupId );
         var subjectName = studentBoardGroup.title;
@@ -430,6 +436,7 @@ class StudentLogic
 
     static async createItem( boardId, groupId, item)
     {
+        console.log("============ StudentLogic.createItem() ================")
         let query = "mutation { " +
         "create_item(board_id: " + boardId + ", group_id: \"" + groupId + "\", item_name: \"" + item.name + "\" ) " +
         "{ " +
@@ -472,6 +479,7 @@ class StudentLogic
 
     static async deleteItem(item_id)
     {
+        console.log("============ StudentLogic.deleteItem() ================")
         let promise = new Promise((resolve, reject)=>{
             let query = "mutation { " +
             " delete_item (item_id: " + item_id + ") { " +
@@ -504,6 +512,7 @@ class StudentLogic
 
     static async updateItem( boardId, groupId, item, studentGroupItems )
     {
+        console.log("============ StudentLogic.updateItem() ================")
         let maps = await this.getMappings();
         let column_values = this.createColumnValues(item.column_values, maps);
         
