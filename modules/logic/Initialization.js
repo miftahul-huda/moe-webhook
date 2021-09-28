@@ -19,7 +19,7 @@ class Initialization
         const sequelize = new Sequelize(process.env.DBNAME, process.env.DBUSER, process.env.DBPASSWORD, {
             host: process.env.DBHOST,
             dialect: 'postgresql'  ,
-            logging: true
+            logging: false
         });
 
         console.log("Initialize database")

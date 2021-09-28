@@ -29,11 +29,11 @@ class BoardLogic
         let promise = new Promise((resolve, reject)=>{
             let client = this.getGraphClient();
             client.request(query).then((response)=>{
-                console.log("=============Query=============")
+                console.log("\n\n=============BoardLogic.Query=============")
                 console.log(query);
-                console.log("Response")
+                console.log("\nBoardLogic.Response")
                 console.log( JSON.stringify( response));
-                console.log("=================")
+                console.log("=================\n\n")
 
                 resolve(response);
             }).catch((err)=>{
@@ -54,8 +54,8 @@ class BoardLogic
             "  column_values " +
             "  { " +
             "      id " +
-            "        title " +
-            "        text " +
+            "      title " +
+            "      text " +
             "      value " +
             "  } " +
             "  board { " +
@@ -167,7 +167,12 @@ class BoardLogic
         let promise = new Promise((resolve, reject) => {
             let query = "{ " +
             "boards(ids: " + boardId + ") { " +
-            "  groups(ids: " + groupId + ") { " +
+            "   workspace() " +
+            "   { " +
+            "       id " +
+            "       name " +
+            "   } " +
+            "   groups(ids: " + groupId + ") { " +
             "    id " +
             "    title " +
             "    items {" +
@@ -190,7 +195,7 @@ class BoardLogic
                     var board = boards[0];
                     var groups = board.groups;
                     if(groups.length > 0)
-                        resolve(groups[0]);
+                        resolve( { board: board, group: groups[0]});
                     else
                         resolve(null)
                 }
@@ -253,6 +258,41 @@ class BoardLogic
         return promise;
     }
 
+    static async getStudentBoards(workspaceId)
+    {
+        let promise = new Promise((resolve, reject)=>{
+            let query = "{" +
+            "boards(limit:5000) {" +
+            "       id " +
+            "       name " +
+            "       workspace() " +
+            "       { " +
+            "           id " +
+            "           name " +
+            "       } " +
+            "   }" +
+            "}";
+
+        
+            this.sendGraph(query).then((response)=>{
+                var items = response.boards;
+                let newItems = [];
+                items.forEach((item)=>{
+                    if(item.workspace != null && item.workspace.id == workspaceId)
+                        newItems.push(item);
+                })
+                resolve(newItems);
+            }).catch(err=>{ 
+                
+                console.log(err);
+                reject(err);
+            })
+        });
+
+        return promise;
+                
+    }
+
     static async handleMessage(message)
     {
         console.log("============ handleMessage() ================")
@@ -262,38 +302,53 @@ class BoardLogic
 
         if(teacherBoardGroup != null)
         {
-            var groupName = teacherBoardGroup.title;
-            var students = await this.getStudents();
+            var groupName = teacherBoardGroup.group.title;
+            //var students = await this.getStudents();
+            var students = await this.getStudentBoards(teacherBoardGroup.board.workspace.id);
 
             students.forEach(async (student, idx)=>{
-                let boardID = student.boardID;
-                let group = await this.getBoardGroupByTitle(boardID, groupName)
-                if(group != null)
+                //let boardID = student.boardID;
+                let boardID = student.id;
+                if(boardID != message.event.boardId)
                 {
-                    //let groupWithItems = await this.getBoardGroup(boardID, group.id)
-
-                    let column_values = this.createColumnValues(item.column_values, maps)
-                    console.log(column_values)
-                    console.log("Student  : " + student.studentName);
-                    console.log("Group ID : " + JSON.stringify(group));
-                    console.log("Group  : " + group.title);
-                    console.log("Original Item  : " + JSON.stringify(item) + "\n");
-                    console.log("Set Column Values : " + JSON.stringify(column_values) + "\n");
-
-                    if(message.event.type == "create_pulse")
+                    let group = await this.getBoardGroupByTitle(boardID, groupName)
+                    if(group != null)
                     {
-                        //Create item in student board and group
-                        await this.createItem(boardID, group.id, item, message.event.boardId, message.event.groupId);
-                        
+                        //let groupWithItems = await this.getBoardGroup(boardID, group.id)
+
+                        let column_values = this.createColumnValues(item.column_values, maps)
+                        console.log(column_values)
+                        //console.log("Student  : " + student.studentName);
+                        console.log("message.event.boardId  : " + message.event.boardId);
+                        console.log("Student  : " + student.name);
+                        console.log("Board ID : " + student.id);
+                        console.log("Group ID : " + JSON.stringify(group));
+                        console.log("Group  : " + group.title);
+                        console.log("Original Item  : " + JSON.stringify(item) + "\n");
+                        console.log("Set Column Values : " + JSON.stringify(column_values) + "\n");
+
+                        if(message.event.type == "create_pulse")
+                        {
+                            //Create item in student board and group
+                            await this.createItem(boardID, group.id, item, message.event.boardId, message.event.groupId);
+                            
+                        }
+                        else
+                        {
+                            //Update item in student board and group
+                            await this.updateItem(boardID, group.id, item, message.event.boardId, message.event.groupId);
+                        }
                     }
-                    else
-                    {
-                        //Update item in student board and group
-                        await this.updateItem(boardID, group.id, item, message.event.boardId, message.event.groupId);
+                    else {
+                        console.log(student.name + " doesn't have group " + groupName);
                     }
                 }
-                else {
-                    console.log("Group is null " + groupName);
+                else    
+                {
+                    console.log("This is the sender : ")
+                    console.log("message.event.boardId  : " + message.event.boardId);
+                    console.log("Student  : " + student.name);
+                    console.log("Board ID : " + student.id);
                 }
                     
             })
@@ -390,9 +445,9 @@ class BoardLogic
         var colStatus = this.searchColumnValue(item, "status");
         var homework = {};
         homework.homeworkTitle = item.name;
-        homework.subject = teacherBoardGroup.title;
+        homework.subject = teacherBoardGroup.group.title;
         homework.boardID = boardId;
-        homework.groupID = teacherBoardGroup.id;
+        homework.groupID = teacherBoardGroup.group.id;
         homework.itemID = item.id;
 
         HomeworkModel.create(homework).then((response) => {
@@ -413,9 +468,9 @@ class BoardLogic
         homework.homeworkTitle = item.name;
         homework.homeworkStatus = JSON.stringify(colStatus);
         homework.homeworkDueDate = JSON.stringify(colDate);
-        homework.subject = teacherBoardGroup.title;
+        homework.subject = teacherBoardGroup.group.title;
         homework.boardID = boardId;
-        homework.groupID = teacherBoardGroup.id;
+        homework.groupID = teacherBoardGroup.group.id;
 
         HomeworkModel.update(homework, {
             where: {

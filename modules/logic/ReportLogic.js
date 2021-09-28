@@ -35,6 +35,10 @@ class ReportLogic
                         [Op.iLike] : "" + subjectName + ""
                     }
                 }
+                ,
+                order: [
+                    ['id', 'ASC']
+                ]
             });
             return homeworks;
         }
@@ -65,6 +69,10 @@ class ReportLogic
                         [Op.in] : homeworkIds
                     }
                 }
+                ,
+                order: [
+                    ['id', 'ASC']
+                ]
             })
             return homeworks;
         }
@@ -92,12 +100,17 @@ class ReportLogic
     {
         try {
             let homeworks = await HomeworkModel.findAll({
-                where: {
+                where: {    
                     [Op.and] : [
                         { boardID: "" + boardID },
                         { groupID: "" + groupID }
                     ]
                 }
+                ,
+                order: [
+                    ['id', 'ASC']
+                ]
+                
             })     
             return homeworks;   
         }
@@ -147,7 +160,10 @@ class ReportLogic
                             }
                         }
                     ]
-                }
+                },
+                order: [
+                    ['id', 'ASC']
+                ]
             })     
             return homeworks;   
         }
@@ -157,6 +173,36 @@ class ReportLogic
             console.log(err);
             return null;
         }
+    }
+
+    static sortStudent(students)
+    {
+        students.sort(function(a, b){
+            let namea = a.studentName;
+            let nameb = b.studentName;
+            let numa = -1;
+            let numb = -1;
+            let loc = namea.indexOf(".");
+            if(loc > -1)
+            {
+                numa = namea.substr(0, loc);
+            }
+            else
+            {
+                numa = namea.charCodeAt(0);
+            }
+            loc = nameb.indexOf(".");
+            if(loc > -1)
+            {
+                numb = nameb.substr(0, loc);
+            }
+            else
+            {
+                numb = nameb.charCodeAt(0);
+            }
+            return numa - numb;
+        })
+        return students;
     }
 
     static async getAllStudentsByBoardGroupHomeworkStatus(boardID, groupID, homeworkId, status)
@@ -212,6 +258,9 @@ class ReportLogic
                     }
                 }
             })     
+
+            students = ReportLogic.sortStudent(students);
+
             return students;   
         }
         catch (err)
@@ -305,6 +354,8 @@ class ReportLogic
                     }
                 }
             }) 
+
+            students = ReportLogic.sortStudent(students);
 
             return students;
         }

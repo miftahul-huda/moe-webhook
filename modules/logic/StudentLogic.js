@@ -28,11 +28,11 @@ class StudentLogic
         let promise = new Promise((resolve, reject)=>{
             let client = this.getGraphClient();
             client.request(query).then((response)=>{
-                console.log("=============Query=============")
-                console.log(query);
-                console.log("Response")
-                console.log( JSON.stringify( response));
-                console.log("=================")
+                //console.log("=============Query=============")
+                //console.log(query);
+                //console.log("Response")
+                //console.log( JSON.stringify( response));
+                //console.log("=================")
 
                 resolve(response);
             }).catch((err)=>{
@@ -121,6 +121,25 @@ class StudentLogic
 
     static async getBoard(boardId)
     {
+        console.log("============ StudentLogic.getBoard() ================")
+        let promise = new Promise((resolve, reject) => {
+            let query = "{ " +
+            "boards(ids: " + boardId + ") { " +
+            "  id " +
+            "  name " +
+            "} " +
+            "}";
+
+            this.sendGraph(query).then((response)=>{
+                let boards = response.boards;
+                resolve( boards[0]);
+                
+            }).catch((e) => {
+                reject(e);
+            })
+        })
+
+        return promise; 
 
     }
 
@@ -144,6 +163,8 @@ class StudentLogic
         let promise = new Promise((resolve, reject) => {
             let query = "{ " +
             "boards(ids: " + boardId + ") { " +
+            "  id " +
+            "  name " +
             "  groups(ids: " + groupId + ") { " +
             "    id " +
             "    title " +
@@ -164,7 +185,7 @@ class StudentLogic
                 var boards = response.boards;
                 var board = boards[0];
                 var groups = board.groups;
-                resolve(groups[0]);
+                resolve( { group: groups[0], board: boards[0]});
                 
             }).catch((e) => {
                 reject(e);
@@ -307,14 +328,63 @@ class StudentLogic
             return null;
     }
 
+    static async createNewDbStudent(student)
+    {
+        let promise = new Promise(async (resolve, reject)=>{
+            try
+            {
+                let newStudent = await StudentModel.create(student)
+                console.log("NEW DBSTUDENT")
+                console.log(newStudent);
+
+                resolve(newStudent)
+            }
+            catch(e)
+            {   
+                console.log("NEW DBSTUDENT ERROR")
+                console.log(e)
+                reject(e)
+            }
+
+        })
+        return promise;
+    }
+
+    static async checkDbStudentByBoardID(boardID)
+    {
+        let promise = new Promise(async (resolve, reject)=>{
+            try
+            {
+                let students = await StudentModel.findAll({where: { boardID : boardID }})
+                if(students.length > 0)
+                    resolve(true);
+                else
+                    resolve(false);
+            }
+            catch(e)
+            {   
+                console.log("find DBSTUDENT ERROR")
+                console.log(e)
+                reject(e)
+            }
+
+        })
+        return promise;
+    }
+
     static async createDbHomeworkStudent(message)
     {
         console.log("============ StudentLogic.createDbHomeworkStudent() ================")
         var item = await this.getItem(message.event.pulseId);
-        var studentBoardGroup = await this.getBoardGroup(message.event.boardId, message.event.groupId );
+        var result = await this.getBoardGroup(message.event.boardId, message.event.groupId );
+        var studentBoardGroup = result.group;
+
         var subjectName = studentBoardGroup.title;
         var homeworkName = item.name;
         
+        var studentExists = await this.checkDbStudentByBoardID(result.board.id);
+        if(studentExists == false)
+            await this.createNewDbStudent({ studentName: result.board.name, boardID: result.board.id  });
         
         var dbHomework = await this.getDbHomeworkByStudentBoardAndGroupAndItemID(message.event.boardId, message.event.groupId, item.id );
         var dbStudent = await this.getDbStudentBoardID(message.event.boardId)
@@ -349,7 +419,9 @@ class StudentLogic
     {
         console.log("============ StudentLogic.updateDbHomeworkStudent() ================")
         var item = await this.getItem(message.event.pulseId);
-        var studentBoardGroup = await this.getBoardGroup(message.event.boardId, message.event.groupId );
+        var result = await this.getBoardGroup(message.event.boardId, message.event.groupId );
+
+        var studentBoardGroup = result.group;
         var subjectName = studentBoardGroup.title;
         var homeworkName = item.name;
         
@@ -369,6 +441,9 @@ class StudentLogic
         if(dbHomeworkStudent != null)
         {
             let colValueStatus = this.searchColumnValue(item, "status_1");
+            if(colValueStatus == null)
+                colValueStatus = this.searchColumnValue(item, "status");
+
             dbHomeworkStudent.homeworkId = dbHomework.id;
             dbHomeworkStudent.studentId = dbStudent.id;
             dbHomeworkStudent.boardID = message.event.boardId;
@@ -396,6 +471,13 @@ class StudentLogic
     static async handleMessage(message)
     {
         let maps = await this.getMappings();
+
+        let student = await this.getBoard(message.event.boardId);
+        console.log("===============================")
+        console.log("STUDENT BOARD : ")
+        console.log("STUDENT NAME : "  + student.name)
+        console.log("===============================")
+
         if(message.event.type == "create_pulse")
         {
             this.createDbHomeworkStudent(message);
